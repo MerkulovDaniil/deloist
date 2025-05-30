@@ -268,8 +268,11 @@ async function loadTasks() {
         const allTasks = await response.json();
         
         // Filter for today's tasks only
-        const today = new Date().toISOString().split('T')[0];
-        tasks = allTasks.filter(task => task.due && task.due.date === today);
+        const today = new Date();
+        const localDateString = today.getFullYear() + '-' + 
+            String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+            String(today.getDate()).padStart(2, '0');
+        tasks = allTasks.filter(task => task.due && task.due.date === localDateString);
 
         // Fetch labels for parsing
         const allLabels = await fetchLabelsFromTodoist();
