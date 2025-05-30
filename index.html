@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌀 Deloist - Diamond Task Tracker</title>
+    <!-- Favicon with emoji -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌀</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌀</text></svg>">
+    <title>🌀 Deloist - Time Tracker for Todoist</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +14,10 @@
         <!-- Header -->
         <div class="header">
             <h1>🌀 Deloist</h1>
-            <button class="settings-icon" onclick="openSettings()">⚙️</button>
+            <div class="header-buttons">
+                <button class="header-btn" onclick="contextualRefresh()" title="Refresh current view">🔄</button>
+                <button class="header-btn" onclick="openSettings()" title="Settings">⚙️</button>
+            </div>
         </div>
 
         <!-- Navigation -->
@@ -34,7 +40,7 @@
                 <div class="timer-display" id="timer-display">25:00</div>
                 <div class="timer-controls" id="timer-controls">
                     <button class="timer-btn start" onclick="startTimer()" id="start-btn">▶️ Start</button>
-                    <button class="timer-btn add" onclick="addTime()" id="add-btn">+25</button>
+                    <button class="timer-btn add" onclick="addTime()" id="add-btn">➕25</button>
                     <button class="timer-btn reset" onclick="resetTimer()" id="reset-btn">🔄 Reset</button>
                 </div>
             </div>
@@ -48,7 +54,6 @@
                     <button class="period-btn" onclick="changePeriod('week')">Week</button>
                     <button class="period-btn" onclick="changePeriod('wweek')">WWeek</button>
                     <button class="period-btn" onclick="changePeriod('month')">Month</button>
-                    <button class="period-btn" onclick="refreshStatistics()">🔄</button>
                 </div>
             </div>
 

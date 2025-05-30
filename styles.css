@@ -1,4 +1,9 @@
 /* CSS Reset and Base Styles */
+:root {
+    --primary-gradient: linear-gradient(135deg, #204ffabd, #9b12f0b4);
+    --primary-gradient-hover: linear-gradient(135deg, #c315d4, #7939e0da);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -21,9 +26,11 @@ body {
 
 /* Header */
 .header {
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 30px;
-    background: white;
+    background: var(--primary-gradient);
     padding: 20px;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
@@ -31,8 +38,9 @@ body {
 
 .header h1 {
     font-size: 2.5rem;
-    color: #1A73E8;
-    margin-bottom: 10px;
+    color: white;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .header p {
@@ -64,7 +72,7 @@ body {
 }
 
 .nav-tab.active {
-    background: #1A73E8;
+    background: var(--primary-gradient);
     color: white;
 }
 
@@ -145,7 +153,7 @@ body {
     font-weight: bold;
     color: #1A73E8;
     margin-bottom: 20px;
-    font-family: 'Courier New', monospace;
+    font-family: monospace;
 }
 
 .timer-controls {
@@ -164,51 +172,12 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     min-width: 80px;
-}
-
-.timer-btn.start {
-    background: #34A853;
+    background: var(--primary-gradient);
     color: white;
 }
 
-.timer-btn.start:hover {
-    background: #2d8f44;
-}
-
-.timer-btn.stop {
-    background: #EA4335;
-    color: white;
-}
-
-.timer-btn.stop:hover {
-    background: #d33b2c;
-}
-
-.timer-btn.pause {
-    background: #FBBC04;
-    color: #333;
-}
-
-.timer-btn.pause:hover {
-    background: #f4b400;
-}
-
-.timer-btn.add {
-    background: #1A73E8;
-    color: white;
-}
-
-.timer-btn.add:hover {
-    background: #1557b0;
-}
-
-.timer-btn.reset {
-    background: #6c757d;
-    color: white;
-}
-
-.timer-btn.reset:hover {
-    background: #5a6268;
+.timer-btn:hover {
+    background: var(--primary-gradient-hover);
 }
 
 .timer-btn:disabled {
@@ -239,9 +208,9 @@ body {
 }
 
 .period-btn.active {
-    background: #1A73E8;
+    background: var(--primary-gradient);
     color: white;
-    border-color: #1A73E8;
+    border-color: transparent;
 }
 
 .default-time-input {
@@ -530,8 +499,12 @@ body {
 }
 
 .btn-primary {
-    background: #1A73E8;
+    background: var(--primary-gradient);
     color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-gradient-hover);
 }
 
 .btn-secondary {
@@ -540,27 +513,59 @@ body {
 }
 
 /* Settings Icon */
-.settings-icon {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 10px;
-    border-radius: 50%;
-    transition: background 0.3s ease;
+.header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
-.settings-icon:hover {
-    background: rgba(0,0,0,0.1);
+.header-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.7rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.header-btn:hover {
+    background: transparent;
+    border: none;
+    transform: translateY(-1px);
+}
+
+.header-btn:active {
+    transform: translateY(0);
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {
         padding: 10px;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .header h1 {
+        font-size: 2rem;
+    }
+    
+    .header-buttons {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .header-btn {
+        font-size: 0.8rem;
+        padding: 6px 10px;
     }
     
     .timer-display {

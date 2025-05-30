@@ -29,10 +29,32 @@ let labelsCache = null;
 document.addEventListener('DOMContentLoaded', function() {
     loadSettings();
     updateTimerDisplay();
+    updateTabTitle(); // Initialize tab title
     if (todoistToken) {
         loadTasks();
     }
 });
+
+// Function to update browser tab title
+function updateTabTitle() {
+    let title = '🌀 Deloist';
+    
+    if (timerState.isRunning || timerState.isPaused) {
+        const minutes = Math.floor(timerState.remaining / 60);
+        const seconds = timerState.remaining % 60;
+        const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timerState.currentTask) {
+            const currentTaskData = tasks.find(t => t.id === timerState.currentTask);
+            const taskName = currentTaskData ? currentTaskData.content : 'Unknown Task';
+            title = `${timeStr} - ${taskName}`;
+        } else {
+            title = `${timeStr} - Timer Running`;
+        }
+    }
+    
+    document.title = title;
+}
 
 // Settings management - only store token and basic settings
 function loadSettings() {
@@ -87,6 +109,19 @@ function switchTab(tabName) {
     // Update tab content
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Update refresh button tooltip based on current tab
+    const refreshBtn = document.querySelector('[onclick="contextualRefresh()"]');
+    if (refreshBtn) {
+        if (tabName === 'tracker') {
+            refreshBtn.title = 'Refresh today\'s tasks';
+        } else if (tabName === 'stats') {
+            refreshBtn.title = 'Refresh statistics';
+        }
+    }
+    
+    // Update tab title (timer will show even on other tabs if running)
+    updateTabTitle();
     
     if (tabName === 'stats') {
         // Use cached data if available, otherwise show no data message
@@ -272,7 +307,26 @@ async function loadTasks() {
         const localDateString = today.getFullYear() + '-' + 
             String(today.getMonth() + 1).padStart(2, '0') + '-' + 
             String(today.getDate()).padStart(2, '0');
-        tasks = allTasks.filter(task => task.due && task.due.date === localDateString);
+        
+        tasks = allTasks.filter(task => {
+            if (!task.due) return false;
+            
+            // Check if task has due.date matching today
+            if (task.due.date === localDateString) {
+                return true;
+            }
+            
+            // Check if task has due.datetime falling on today (regardless of time)
+            if (task.due.datetime) {
+                const dueDatetime = new Date(task.due.datetime);
+                const dueDateString = dueDatetime.getFullYear() + '-' + 
+                    String(dueDatetime.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(dueDatetime.getDate()).padStart(2, '0');
+                return dueDateString === localDateString;
+            }
+            
+            return false;
+        });
 
         // Fetch labels for parsing
         const allLabels = await fetchLabelsFromTodoist();
@@ -329,6 +383,9 @@ function selectTask(taskId) {
         item.classList.remove('selected');
     });
     document.querySelector(`[onclick="selectTask('${taskId}')"]`).classList.add('selected');
+    
+    // Update tab title
+    updateTabTitle();
 }
 
 // Timer functionality
@@ -348,6 +405,7 @@ function startTimer() {
     
     currentTimer = setInterval(updateTimer, 1000);
     updateTimerControls();
+    updateTabTitle();
 }
 
 function stopTimer() {
@@ -376,6 +434,27 @@ function stopTimer() {
     
     updateTimerDisplay();
     updateTimerControls();
+    updateTabTitle();
+}
+
+function cancelTimer() {
+    if (!timerState.isRunning) return;
+    
+    clearInterval(currentTimer);
+    currentTimer = null;
+    
+    // Reset timer state without recording any session data
+    timerState.isRunning = false;
+    timerState.isPaused = false;
+    timerState.remaining = timerState.duration;
+    timerState.startTime = null;
+    timerState.actualStartTime = null;
+    timerState.pausedTime = 0;
+    delete timerState.pauseStartTime;
+    
+    updateTimerDisplay();
+    updateTimerControls();
+    updateTabTitle();
 }
 
 function pauseTimer() {
@@ -387,6 +466,7 @@ function pauseTimer() {
     timerState.pauseStartTime = Date.now(); // Track when pause started
     
     updateTimerControls();
+    updateTabTitle();
 }
 
 function resumeTimer() {
@@ -402,6 +482,7 @@ function resumeTimer() {
     currentTimer = setInterval(updateTimer, 1000);
     
     updateTimerControls();
+    updateTabTitle();
 }
 
 function addTime() {
@@ -458,6 +539,7 @@ function updateTimerDisplay() {
     const seconds = timerState.remaining % 60;
     document.getElementById('timer-display').textContent = 
         `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    updateTabTitle();
 }
 
 function updateTimerControls() {
@@ -475,6 +557,7 @@ function updateTimerControls() {
         controls.innerHTML = `
             <button class="timer-btn start" onclick="resumeTimer()">▶️ Resume</button>
             <button class="timer-btn stop" onclick="stopTimer()">⏹️ Stop</button>
+            <button class="timer-btn cancel" onclick="cancelTimer()">❌ Cancel</button>
             <button class="timer-btn add" onclick="addTime()" id="add-btn">+25</button>
         `;
     } else {
@@ -482,6 +565,7 @@ function updateTimerControls() {
         controls.innerHTML = `
             <button class="timer-btn pause" onclick="pauseTimer()">⏸️ Pause</button>
             <button class="timer-btn stop" onclick="stopTimer()">⏹️ Stop</button>
+            <button class="timer-btn cancel" onclick="cancelTimer()">❌ Cancel</button>
             <button class="timer-btn add" onclick="addTime()" id="add-btn">+25</button>
         `;
     }
@@ -607,6 +691,40 @@ function refreshStatistics() {
     
     // Explicitly refresh the statistics data
     loadStatisticsData();
+}
+
+// Function to refresh today's tasks
+function refreshTodayTasks() {
+    if (!todoistToken) {
+        document.getElementById('task-list').innerHTML = 
+            '<div class="loading"><p>Please add your Todoist token in settings</p></div>';
+        return;
+    }
+    
+    // Show loading state immediately
+    document.getElementById('task-list').innerHTML = 
+        '<div class="loading"><p>🔄 Refreshing today\'s tasks...</p></div>';
+    
+    // Clear any existing task selection
+    timerState.currentTask = null;
+    
+    // Reload tasks
+    loadTasks();
+}
+
+// Contextual refresh function that adapts based on current tab
+function contextualRefresh() {
+    // Check which tab is currently active
+    const trackerTab = document.getElementById('tracker-tab');
+    const statsTab = document.getElementById('stats-tab');
+    
+    if (trackerTab.classList.contains('active')) {
+        // We're on the tracker tab, refresh today's tasks
+        refreshTodayTasks();
+    } else if (statsTab.classList.contains('active')) {
+        // We're on the statistics tab, refresh statistics
+        refreshStatistics();
+    }
 }
 
 function showNoDataWithRefreshPrompt() {
