@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💎 Deloist - Diamond Task Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>💎 Deloist</h1>
+            <button class="settings-icon" onclick="openSettings()">⚙️</button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('tracker')">💎 Tracker</button>
+            <button class="nav-tab" onclick="switchTab('stats')">📊 Statistics</button>
+        </div>
+
+        <!-- Tracker Tab -->
+        <div id="tracker-tab" class="tab-content active">
+            <!-- Task List -->
+            <div class="task-list" id="task-list">
+                <div class="loading">
+                    <p>Connect your Todoist account in settings to load today's tasks...</p>
+                </div>
+            </div>
+
+            <!-- Timer Section -->
+            <div class="timer-section">
+                <div class="timer-display" id="timer-display">25:00</div>
+                <div class="timer-controls" id="timer-controls">
+                    <button class="timer-btn start" onclick="startTimer()" id="start-btn">▶️ Start</button>
+                    <button class="timer-btn add" onclick="addTime()" id="add-btn">+25</button>
+                    <button class="timer-btn reset" onclick="resetTimer()" id="reset-btn">🔄 Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="stats-tab" class="tab-content">
+            <div class="stats-header">
+                <div class="period-selector">
+                    <button class="period-btn active" onclick="changePeriod('day')">Day</button>
+                    <button class="period-btn" onclick="changePeriod('week')">Week</button>
+                    <button class="period-btn" onclick="changePeriod('wweek')">WWeek</button>
+                    <button class="period-btn" onclick="changePeriod('month')">Month</button>
+                    <button class="period-btn" onclick="refreshStatistics()">🔄</button>
+                </div>
+            </div>
+
+            <!-- Day View -->
+            <div id="day-view" class="chart-view active">
+                <h3>Today's Completed Tasks</h3>
+                <div class="chart-container">
+                    <div id="day-chart" class="bar-chart"></div>
+                </div>
+            </div>
+
+            <!-- Week View -->
+            <div id="week-view" class="chart-view">
+                <h3>Last 7 Days Completed Tasks</h3>
+                <div class="chart-container">
+                    <div id="week-total-chart" class="bar-chart"></div>
+                </div>
+                
+                <h4>Daily Breakdown</h4>
+                <div class="daily-charts">
+                    <div id="daily-charts-container"></div>
+                </div>
+            </div>
+
+            <!-- Working Week View -->
+            <div id="wweek-view" class="chart-view">
+                <h3>This Working Week's Completed Tasks</h3>
+                <div class="chart-container">
+                    <div id="wweek-total-chart" class="bar-chart"></div>
+                </div>
+                
+                <h4>Daily Breakdown</h4>
+                <div class="daily-charts">
+                    <div id="wweek-daily-charts-container"></div>
+                </div>
+            </div>
+
+            <!-- Month View -->
+            <div id="month-view" class="chart-view">
+                <h3>This Month's Completed Tasks</h3>
+                <div class="chart-container">
+                    <div id="month-chart" class="bar-chart"></div>
+                </div>
+            </div>
+
+            <!-- No Data Message -->
+            <div id="no-data" class="no-data" style="display: none;">
+                <p>No completed tasks found for this period.</p>
+                <p>Complete some tasks to see beautiful charts! 💎</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settings-modal">
+        <div class="settings-content">
+            <h2>⚙️ Settings</h2>
+            
+            <div class="settings-group">
+                <label for="todoist-token">Todoist Personal Access Token:</label>
+                <input type="password" id="todoist-token" placeholder="Enter your Todoist API token">
+                <small>Get your token from <a href="https://todoist.com/prefs/integrations" target="_blank">Todoist Integrations</a></small>
+            </div>
+            
+            <div class="settings-group">
+                <label for="diamond-duration">Task Duration (minutes):</label>
+                <input type="number" id="diamond-duration" value="25" min="1" max="180">
+            </div>
+            
+            <div class="settings-group">
+                <label for="default-time">Default time for untracked tasks (minutes):</label>
+                <input type="number" id="default-time" value="25" min="1" max="180">
+            </div>
+            
+            <div class="settings-actions">
+                <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

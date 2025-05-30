@@ -1,0 +1,627 @@
+/* CSS Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    color: #1A73E8;
+    margin-bottom: 10px;
+}
+
+.header p {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+/* Navigation Tabs */
+.nav-tabs {
+    display: flex;
+    background: white;
+    border-radius: 10px;
+    padding: 5px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.nav-tab {
+    flex: 1;
+    padding: 12px 20px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.nav-tab.active {
+    background: #1A73E8;
+    color: white;
+}
+
+.nav-tab:not(.active):hover {
+    background: #f0f0f0;
+}
+
+/* Main Content */
+.tab-content {
+    display: none;
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Task List */
+.task-list {
+    margin-bottom: 30px;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.task-item:hover {
+    border-color: #1A73E8;
+    background: #f8f9ff;
+}
+
+.task-item.selected {
+    border-color: #1A73E8;
+    background: #f8f9ff;
+}
+
+.task-content {
+    flex: 1;
+}
+
+.task-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.task-tags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.task-tag {
+    background: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Timer Section */
+.timer-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.timer-display {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #1A73E8;
+    margin-bottom: 20px;
+    font-family: 'Courier New', monospace;
+}
+
+.timer-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.timer-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 80px;
+}
+
+.timer-btn.start {
+    background: #34A853;
+    color: white;
+}
+
+.timer-btn.start:hover {
+    background: #2d8f44;
+}
+
+.timer-btn.stop {
+    background: #EA4335;
+    color: white;
+}
+
+.timer-btn.stop:hover {
+    background: #d33b2c;
+}
+
+.timer-btn.pause {
+    background: #FBBC04;
+    color: #333;
+}
+
+.timer-btn.pause:hover {
+    background: #f4b400;
+}
+
+.timer-btn.add {
+    background: #1A73E8;
+    color: white;
+}
+
+.timer-btn.add:hover {
+    background: #1557b0;
+}
+
+.timer-btn.reset {
+    background: #6c757d;
+    color: white;
+}
+
+.timer-btn.reset:hover {
+    background: #5a6268;
+}
+
+.timer-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Statistics */
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.period-selector {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.period-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.period-btn.active {
+    background: #1A73E8;
+    color: white;
+    border-color: #1A73E8;
+}
+
+.default-time-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.default-time-input input {
+    width: 60px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Chart Views */
+.chart-view {
+    display: none;
+}
+
+.chart-view.active {
+    display: block;
+}
+
+.chart-view h3 {
+    color: #1A73E8;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.chart-view h4 {
+    color: #1A73E8;
+    margin: 30px 0 15px 0;
+    text-align: center;
+}
+
+/* Chart Container */
+.chart-container {
+    background: transparent;
+    border-radius: 0;
+    padding: 20px 0;
+    margin-bottom: 20px;
+    box-shadow: none;
+}
+
+.bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.chart-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 30px;
+    width: 100%;
+    justify-content: center;
+}
+
+.chart-bar {
+    width: 80px;
+    max-height: 200px;
+    border-radius: 8px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.chart-bar:hover {
+    opacity: 0.8;
+}
+
+.bar-segment {
+    width: 100%;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.bar-label {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.bar-value {
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    color: #333;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.chart-tags {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    min-width: 200px;
+    flex-shrink: 0;
+}
+
+.chart-tag-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.9rem;
+    background: transparent;
+    border: none;
+}
+
+.chart-tag-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.chart-tag-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.chart-tag-value {
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+}
+
+/* Daily Charts for Week View */
+.daily-charts {
+    margin-top: 20px;
+}
+
+.daily-chart-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.daily-chart {
+    background: transparent;
+    border-radius: 0;
+    padding: 15px 5px;
+    box-shadow: none;
+}
+
+.daily-chart-title {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.daily-bar {
+    height: 180px;
+    width: 100%;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+}
+
+.daily-bar-segment {
+    width: 100%;
+}
+
+.daily-bar-value {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: #333;
+    font-weight: 600;
+}
+
+/* Chart Legend */
+.chart-legend {
+    display: none; /* Hidden since we now show tags inline */
+}
+
+/* Chart Summary */
+.chart-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.summary-card {
+    background: #f8f9ff;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1A73E8;
+    margin-bottom: 5px;
+}
+
+.summary-label {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* No Data State */
+.no-data {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.no-data p {
+    margin-bottom: 10px;
+}
+
+/* Settings Modal */
+.settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+.settings-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.settings-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.settings-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: #1A73E8;
+    color: white;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+}
+
+/* Settings Icon */
+.settings-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 50%;
+    transition: background 0.3s ease;
+}
+
+.settings-icon:hover {
+    background: rgba(0,0,0,0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .timer-display {
+        font-size: 3rem;
+    }
+    
+    .stats-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .daily-chart-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .chart-bar-container {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .chart-bar {
+        width: 60px;
+        max-height: 150px;
+    }
+    
+    .chart-tags {
+        min-width: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .chart-tag-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 4px;
+    }
+    
+    .bar-chart {
+        padding: 10px 0;
+    }
+}
+
+/* Loading States */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.error {
+    background: #ffeaa7;
+    color: #d63031;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+} 
