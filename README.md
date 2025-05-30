@@ -1,4 +1,4 @@
-# 💎 Deloist - Time Tracker powered by Todoist
+# 🌀 Deloist - Time Tracker powered by Todoist
 
 A beautiful timer that seamlessly integrates with Todoist to track your productivity and visualize your completed tasks through stunning charts.
 
@@ -177,4 +177,4 @@ Open source project - feel free to use and modify as needed.
 
 ---
 
-**Start tracking your productivity today!** 💎 [Try Deloist](https://merkulov.top/deloist)
+**Start tracking your productivity today!** 🌀 [Try Deloist](https://merkulov.top/deloist)

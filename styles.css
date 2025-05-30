@@ -315,10 +315,6 @@ body {
     transition: all 0.3s ease;
 }
 
-.chart-bar:hover {
-    opacity: 0.8;
-}
-
 .bar-segment {
     width: 100%;
     transition: all 0.3s ease;

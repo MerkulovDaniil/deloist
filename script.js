@@ -22,6 +22,9 @@ let settings = {
 // Cache for completed tasks to avoid repeated API calls
 let completedTasksCache = null;
 
+// Cache for labels to avoid repeated API calls
+let labelsCache = null;
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     loadSettings();
@@ -95,6 +98,151 @@ function switchTab(tabName) {
     }
 }
 
+// Fetch all labels from Todoist API
+async function fetchLabelsFromTodoist() {
+    if (labelsCache) {
+        return labelsCache;
+    }
+    
+    try {
+        const response = await fetch('https://api.todoist.com/rest/v2/labels', {
+            headers: {
+                'Authorization': `Bearer ${todoistToken}`
+            }
+        });
+        
+        if (response.ok) {
+            labelsCache = await response.json();
+            console.log('Fetched labels:', labelsCache);
+            return labelsCache;
+        }
+    } catch (error) {
+        console.error('Error fetching labels:', error);
+    }
+    
+    return [];
+}
+
+// Enhanced function to parse task labels and duration from API response
+function parseTaskLabelsAndDuration(task, allLabels = []) {
+    const result = {
+        labels: [],
+        duration: null
+    };
+    
+    // Debug logging
+    console.log('Parsing task:', {
+        id: task.id || task.task_id,
+        content: task.content,
+        labels: task.labels,
+        duration: task.duration
+    });
+    
+    // Create label lookup map
+    const labelMap = {};
+    allLabels.forEach(label => {
+        labelMap[label.id] = label.name;
+        labelMap[String(label.id)] = label.name;
+    });
+    
+    // Parse labels - handle different formats
+    if (task.labels) {
+        if (Array.isArray(task.labels)) {
+            // Modern API format: labels is array of strings or IDs
+            result.labels = task.labels
+                .map(label => {
+                    // Handle both string labels and ID references
+                    if (typeof label === 'string') {
+                        // Check if it's a label name or try to resolve as ID
+                        return labelMap[label] || label;
+                    } else if (typeof label === 'number') {
+                        // Resolve label ID to name
+                        return labelMap[label] || labelMap[String(label)] || `label_${label}`;
+                    }
+                    return null;
+                })
+                .filter(label => label && label.trim() !== '');
+        } else if (typeof task.labels === 'string') {
+            // Legacy format: comma-separated string
+            result.labels = task.labels.split(',')
+                .map(label => {
+                    const trimmedLabel = label.trim();
+                    // Try to resolve as ID first, then use as-is
+                    return labelMap[trimmedLabel] || trimmedLabel;
+                })
+                .filter(label => label !== '');
+        }
+    }
+    
+    // Parse duration from API
+    if (task.duration && typeof task.duration === 'object') {
+        const amount = task.duration.amount;
+        const unit = task.duration.unit;
+        
+        if (typeof amount === 'number' && amount > 0) {
+            if (unit === 'minute') {
+                result.duration = amount;
+            } else if (unit === 'hour') {
+                result.duration = amount * 60;
+            } else if (unit === 'day') {
+                result.duration = amount * 60 * 24;
+            }
+        }
+    }
+    
+    // If no labels found from API, check task content for emoji-based labels and @mentions
+    if (result.labels.length === 0) {
+        const contentLabels = extractEmojiLabels(task.content || '');
+        result.labels = contentLabels;
+    } else {
+        // Also add content-based labels to supplement API labels
+        const contentLabels = extractEmojiLabels(task.content || '');
+        result.labels = [...result.labels, ...contentLabels];
+    }
+    
+    // Ensure we have unique labels
+    result.labels = [...new Set(result.labels)];
+    
+    console.log('Parsed result:', result);
+    
+    return result;
+}
+
+// Function to extract emoji-based labels from task content
+function extractEmojiLabels(content) {
+    const labels = [];
+    
+    // Extract emoji patterns (can be just emoji, emoji+word, etc.)
+    // This regex matches emojis followed by optional text without spaces
+    const emojiPattern = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu;
+    
+    // Also look for @label patterns
+    const mentionPattern = /@([^\s@]+)/g;
+    
+    let match;
+    
+    // Extract emoji labels
+    while ((match = emojiPattern.exec(content)) !== null) {
+        const emoji = match[0];
+        // Look for text immediately following emoji (no space)
+        const restOfContent = content.slice(match.index + emoji.length);
+        const wordMatch = restOfContent.match(/^[a-zA-Z]+/);
+        
+        if (wordMatch) {
+            labels.push(emoji + wordMatch[0]);
+        } else {
+            labels.push(emoji);
+        }
+    }
+    
+    // Extract @mention labels
+    while ((match = mentionPattern.exec(content)) !== null) {
+        labels.push(match[1]);
+    }
+    
+    return labels;
+}
+
 // Todoist API integration - only fetch today's tasks
 async function loadTasks() {
     if (!todoistToken) {
@@ -123,6 +271,19 @@ async function loadTasks() {
         const today = new Date().toISOString().split('T')[0];
         tasks = allTasks.filter(task => task.due && task.due.date === today);
 
+        // Fetch labels for parsing
+        const allLabels = await fetchLabelsFromTodoist();
+
+        // Parse labels and duration for each task
+        tasks = tasks.map(task => {
+            const parsed = parseTaskLabelsAndDuration(task, allLabels);
+            return {
+                ...task,
+                labels: parsed.labels,
+                parsedDuration: parsed.duration
+            };
+        });
+
         renderTasks();
     } catch (error) {
         console.error('Error loading tasks:', error);
@@ -139,16 +300,18 @@ function renderTasks() {
         return;
     }
 
-    taskList.innerHTML = tasks.map(task => `
-        <div class="task-item ${timerState.currentTask === task.id ? 'selected' : ''}" onclick="selectTask('${task.id}')">
-            <div class="task-content">
-                <div class="task-title">${task.content}</div>
-                <div class="task-tags">
-                    ${task.labels.map(label => `<span class="task-tag">${label}</span>`).join('')}
+    taskList.innerHTML = tasks.map(task => {
+        return `
+            <div class="task-item ${timerState.currentTask === task.id ? 'selected' : ''}" onclick="selectTask('${task.id}')">
+                <div class="task-content">
+                    <div class="task-title">${task.content}</div>
+                    <div class="task-tags">
+                        ${task.labels.map(label => `<span class="task-tag">${label}</span>`).join('')}
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function selectTask(taskId) {
@@ -435,6 +598,10 @@ async function loadStatisticsData() {
 }
 
 function refreshStatistics() {
+    // Clear caches to ensure fresh data
+    completedTasksCache = null;
+    labelsCache = null;
+    
     // Explicitly refresh the statistics data
     loadStatisticsData();
 }
@@ -497,6 +664,9 @@ async function fetchCompletedTasksFromTodoist() {
     let completedTasks = [];
     
     try {
+        // Fetch labels first for proper parsing
+        const allLabels = await fetchLabelsFromTodoist();
+        
         // Use sync API to get completed tasks (main approach)
         const completedResponse = await fetch('https://api.todoist.com/sync/v9/completed/get_all', {
             method: 'POST',
@@ -511,71 +681,46 @@ async function fetchCompletedTasksFromTodoist() {
             const completedData = await completedResponse.json();
             const rawCompletedTasks = completedData.items || [];
             
-            // Fetch labels for mapping
-            const labelsResponse = await fetch('https://api.todoist.com/rest/v2/labels', {
-                headers: { 'Authorization': `Bearer ${todoistToken}` }
-            });
-            
-            let allLabels = [];
-            if (labelsResponse.ok) {
-                allLabels = await labelsResponse.json();
-            }
-            
-            // Create label lookup map
-            const labelMap = {};
-            allLabels.forEach(label => {
-                labelMap[label.id] = label.name;
-                labelMap[String(label.id)] = label.name; // Handle both number and string IDs
-            });
-            
-            // Process completed tasks
-            completedTasks = rawCompletedTasks.map(task => {
-                let taskLabels = [];
-                
-                // Extract labels from task content (they appear as @labelname)
-                const content = task.content || '';
-                const labelMentions = content.match(/@[^\s@]+/g) || [];
-                
-                // Map @mentions to actual label names
-                labelMentions.forEach(mention => {
-                    const mentionText = mention.substring(1); // Remove @ symbol
-                    // Find matching label by name
-                    const matchingLabel = allLabels.find(label => label.name === mentionText);
-                    if (matchingLabel) {
-                        taskLabels.push(matchingLabel.name);
-                    }
-                });
-                
-                // Also try traditional API fields if they exist
-                if (task.labels && Array.isArray(task.labels)) {
-                    // Labels as ID array
-                    const apiLabels = task.labels
-                        .map(labelId => labelMap[labelId] || labelMap[String(labelId)])
-                        .filter(label => label);
-                    taskLabels = [...taskLabels, ...apiLabels];
-                } else if (task.label_names && Array.isArray(task.label_names)) {
-                    // Direct label names
-                    taskLabels = [...taskLabels, ...task.label_names];
-                } else if (typeof task.labels === 'string') {
-                    // Labels as comma-separated string (some API versions)
+            // Fetch detailed task information for each completed task to get proper labels and durations
+            const detailedTasks = await Promise.all(
+                rawCompletedTasks.slice(0, 100).map(async (task) => { // Limit to 100 most recent to avoid API limits
                     try {
-                        const labelIds = task.labels.split(',').map(id => id.trim());
-                        const apiLabels = labelIds
-                            .map(labelId => labelMap[labelId] || labelMap[String(labelId)])
-                            .filter(label => label);
-                        taskLabels = [...taskLabels, ...apiLabels];
+                        // Try to fetch full task details from REST API
+                        const taskDetailResponse = await fetch(`https://api.todoist.com/rest/v2/tasks/${task.task_id || task.id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${todoistToken}`
+                            }
+                        });
+                        
+                        if (taskDetailResponse.ok) {
+                            const taskDetail = await taskDetailResponse.json();
+                            // Merge completed task info with detailed task info
+                            return {
+                                ...task,
+                                ...taskDetail,
+                                completed_at: task.completed_at || task.completed_date,
+                                // Preserve sync API specific fields
+                                task_id: task.task_id || task.id
+                            };
+                        }
                     } catch (e) {
-                        console.log('Error parsing string labels:', e);
+                        console.log(`Could not fetch details for task ${task.task_id || task.id}:`, e);
                     }
-                }
+                    
+                    // Fallback to sync API data if REST API fails
+                    return task;
+                })
+            );
+            
+            // Process completed tasks with enhanced label and duration parsing
+            completedTasks = detailedTasks.map(task => {
+                const parsed = parseTaskLabelsAndDuration(task, allLabels);
                 
-                // Remove duplicates
-                taskLabels = [...new Set(taskLabels)];
-                
-                // Create processed task
+                // Create processed task with consistent format
                 const processedTask = {
                     ...task,
-                    labels: taskLabels,
+                    labels: parsed.labels,
+                    parsedDuration: parsed.duration,
                     completed_at: task.completed_at || task.completed_date // Handle different date formats
                 };
                 
@@ -719,11 +864,14 @@ function groupTasksByTags(tasks, defaultTime) {
             tags = ['Untagged'];
         }
         
+        // Split duration equally among all tags
+        const durationPerTag = duration / tags.length;
+        
         tags.forEach(tag => {
             if (!tagStats[tag]) {
                 tagStats[tag] = 0;
             }
-            tagStats[tag] += duration;
+            tagStats[tag] += durationPerTag;
         });
     });
     
@@ -731,6 +879,12 @@ function groupTasksByTags(tasks, defaultTime) {
 }
 
 function getTaskDuration(task, defaultTime) {
+    // First check for our parsed duration
+    if (task.parsedDuration && typeof task.parsedDuration === 'number' && task.parsedDuration > 0) {
+        return task.parsedDuration;
+    }
+    
+    // Fallback to original duration parsing for compatibility
     if (task.duration && task.duration.amount) {
         if (task.duration.unit === 'minute') {
             return task.duration.amount;
@@ -738,6 +892,7 @@ function getTaskDuration(task, defaultTime) {
             return task.duration.amount * 60;
         }
     }
+    
     return defaultTime;
 }
 
@@ -964,13 +1119,26 @@ function hideNoData() {
 }
 
 function getTagColor(tag) {
-    // Simple hash function to generate consistent colors for tags
+    // Apple-style color palette - clean, modern colors sampled from gradient ranges
+    const appleColors = [
+        // Blues (from light sky to deep)
+        '#007AFF', '#0051D5', '#003D82', '#5AC8FA', '#32ADE6', '#1F8FD6',
+        
+        // Purples (from light lavender to deep)
+        '#AF52DE', '#8E44AD', '#6C3483', '#BF5AF2', '#9B59B6', '#7D3C98',
+
+       
+    ];
+    
+    // Simple hash function to generate consistent index for tags
     let hash = 0;
     for (let i = 0; i < tag.length; i++) {
         hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const hue = hash % 360;
-    return `hsl(${hue}, 70%, 60%)`;
+    
+    // Ensure positive index and map to color array
+    const colorIndex = Math.abs(hash) % appleColors.length;
+    return appleColors[colorIndex];
 }
 
 function changePeriod(period) {
