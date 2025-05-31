@@ -1,8 +1,34 @@
 # 🌀 Deloist - Time Tracker powered by Todoist
 
 A beautiful timer that seamlessly integrates with Todoist to track your productivity and visualize your completed tasks through stunning charts.
+Free, open-source, and serverless.
 
-**🌟 [Live Demo](https://merkulov.top/deloist)**
+I have made it for myself, because I love Todoist, but it lacks a session timer and a simple statistics of time spent on the tasks. I did not want to pay for such a simple feature.
+
+**🌟 [Live Demo](https://delo.fmin.xyz/)**
+
+## 🚀 Quick Start
+
+### Online Usage (Recommended)
+1. Visit **[https://delo.fmin.xyz/](https://delo.fmin.xyz/)**
+2. Click the settings gear ⚙️ icon
+3. Add your Todoist Personal Access Token
+4. Start tracking your productivity!
+
+### Local Setup
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/MerkulovDaniil/deloist.git
+   cd deloist
+   ```
+
+2. **Open in browser**
+   Simply open index.html in your browser. 
+
+3. **Configure Todoist integration**
+   - Get your token from [Todoist Integrations](https://todoist.com/prefs/integrations)
+   - Click settings ⚙️ and paste your token
+   - Save settings
 
 ## ✨ Features
 
@@ -25,40 +51,6 @@ A beautiful timer that seamlessly integrates with Todoist to track your producti
 - **Duration tracking** - automatically updates Todoist with time spent
 - **Tag support** - visualize productivity by project tags
 - **Secure API integration** using Personal Access Tokens
-
-### 🎨 Modern Design
-- **Clean, minimalist interface** with gradient backgrounds
-- **Responsive design** that works on all devices
-- **Smooth animations** and hover effects
-- **Intuitive navigation** between Tracker and Statistics
-
-## 🚀 Quick Start
-
-### Online Usage (Recommended)
-1. Visit **[https://merkulov.top/deloist](https://merkulov.top/deloist)**
-2. Click the settings gear ⚙️ icon
-3. Add your Todoist Personal Access Token
-4. Start tracking your productivity!
-
-### Local Setup
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd deloist
-   ```
-
-2. **Open in browser**
-   ```bash
-   # Simply open index.html in your browser
-   open index.html
-   # or
-   python -m http.server 8000  # For local server
-   ```
-
-3. **Configure Todoist integration**
-   - Get your token from [Todoist Integrations](https://todoist.com/prefs/integrations)
-   - Click settings ⚙️ and paste your token
-   - Save settings
 
 ## 🔧 Configuration
 
@@ -146,10 +138,17 @@ A beautiful timer that seamlessly integrates with Todoist to track your producti
 
 **Statistics not showing?**
 - Click the refresh button 🔄 in statistics tab
-- Verify you have completed tasks with the integration active
+- Verify you have completed tasks with the integration active (only those tasks, that are completed in Todoist are counted in the statistics)
 - Check that tasks have proper tags in Todoist
 
 **Timer not accurate?**
 - The timer accounts for pause time automatically
 - Time tracking updates Todoist when you stop the timer
 - Browser tab switching doesn't affect accuracy
+
+**I have spent a time on a task, but it's not counted in the statistics**
+- Check that you have completed the task in Todoist
+- Check that the time spent on the task is at least 1 minute
+- Check that you have set the default task time in settings
+- Check that you have set the session duration in settings
+- Check that you have set the default task time in settings

@@ -25,6 +25,10 @@ let completedTasksCache = null;
 // Cache for labels to avoid repeated API calls
 let labelsCache = null;
 
+// Sequential color assignment tracking
+let tagColorAssignments = {};
+let nextColorIndex = 0;
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     loadSettings();
@@ -1240,26 +1244,29 @@ function hideNoData() {
 }
 
 function getTagColor(tag) {
-    // Apple-style color palette - clean, modern colors sampled from gradient ranges
-    const appleColors = [
-        // Blues (from light sky to deep)
-        '#007AFF', '#0051D5', '#003D82', '#5AC8FA', '#32ADE6', '#1F8FD6',
-        
-        // Purples (from light lavender to deep)
-        '#AF52DE', '#8E44AD', '#6C3483', '#BF5AF2', '#9B59B6', '#7D3C98',
-
-       
+    // Modern color palette with vibrant, distinct colors
+    const modernColors = [
+        '#277da1',  // cerulean
+        '#4d908e', // dark-cyan
+        '#43aa8b', // zomp
+        '#90be6d', // pistachio
+        '#f9c74f', // saffron
+        '#f9844a', // coral
+        '#f3722c', // orange-crayola
+        '#f94144', // imperial-red        
     ];
     
-    // Simple hash function to generate consistent index for tags
-    let hash = 0;
-    for (let i = 0; i < tag.length; i++) {
-        hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    // Check if this tag already has a color assigned
+    if (tagColorAssignments[tag] !== undefined) {
+        return modernColors[tagColorAssignments[tag]];
     }
     
-    // Ensure positive index and map to color array
-    const colorIndex = Math.abs(hash) % appleColors.length;
-    return appleColors[colorIndex];
+    // Assign the next sequential color to this new tag
+    const colorIndex = nextColorIndex % modernColors.length;
+    tagColorAssignments[tag] = colorIndex;
+    nextColorIndex++;
+    
+    return modernColors[colorIndex];
 }
 
 function changePeriod(period) {
