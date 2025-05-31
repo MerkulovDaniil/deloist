@@ -346,10 +346,29 @@ async function loadTasks() {
         });
 
         renderTasks();
+        
+        // Load statistics in the background after successfully loading tasks
+        // This ensures the data is ready when the user first switches to the statistics tab
+        loadStatisticsInBackground();
+        
     } catch (error) {
         console.error('Error loading tasks:', error);
         document.getElementById('task-list').innerHTML = 
             '<div class="error"><p>Error loading tasks. Please check your token and try again.</p></div>';
+    }
+}
+
+// Function to load statistics data in the background without affecting the UI
+async function loadStatisticsInBackground() {
+    try {
+        console.log('Loading statistics in background...');
+        // Fetch fresh completed tasks data and cache it
+        completedTasksCache = await fetchCompletedTasksFromTodoist();
+        console.log('Statistics data loaded and cached successfully');
+    } catch (error) {
+        console.error('Error loading statistics in background:', error);
+        // If background loading fails, we'll just fall back to the existing behavior
+        // where the user needs to click refresh when switching to stats tab
     }
 }
 
