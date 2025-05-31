@@ -390,6 +390,9 @@ function selectTask(taskId) {
     
     // Update tab title
     updateTabTitle();
+
+    const taskName = tasks.find(t => t.id === taskId)?.content || 'Unknown Task';
+    document.getElementById('selected-task').textContent = taskName;
 }
 
 // Timer functionality

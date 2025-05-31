@@ -28,15 +28,10 @@
 
         <!-- Tracker Tab -->
         <div id="tracker-tab" class="tab-content active">
-            <!-- Task List -->
-            <div class="task-list" id="task-list">
-                <div class="loading">
-                    <p>Connect your Todoist account in settings to load today's tasks...</p>
-                </div>
-            </div>
 
             <!-- Timer Section -->
             <div class="timer-section">
+                <div class="selected-task" id="selected-task">Select a task from the list below</div>
                 <div class="timer-display" id="timer-display">25:00</div>
                 <div class="timer-controls" id="timer-controls">
                     <button class="timer-btn start" onclick="startTimer()" id="start-btn">▶️ Start</button>
@@ -44,6 +39,15 @@
                     <button class="timer-btn reset" onclick="resetTimer()" id="reset-btn">🔄 Reset</button>
                 </div>
             </div>
+            
+            <!-- Task List -->
+            <div class="task-list" id="task-list">
+                <div class="loading">
+                    <p>Connect your Todoist account in settings to load today's tasks...</p>
+                </div>
+            </div>
+
+            
         </div>
 
         <!-- Statistics Tab -->
