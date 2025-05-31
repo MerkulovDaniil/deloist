@@ -543,7 +543,7 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 385px) {
     .container {
         padding: 10px;
     }

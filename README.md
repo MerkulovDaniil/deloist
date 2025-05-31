@@ -69,8 +69,8 @@ A beautiful timer that seamlessly integrates with Todoist to track your producti
 4. Paste it in Deloist settings
 
 ### Timer Settings
-- **Diamond Duration**: Length of each session (default: 25 minutes)
-- **Default Task Time**: Time assigned to completed tasks without duration tracking (default: 25 minutes)
+- **Session Duration**: Length of each session (default: 25 minutes)
+- **Default Task Time**: Time assigned to completed tasks without duration tracking (default: 25 minutes) - this is needed for statistics.
 
 ## 📱 Usage Guide
 
@@ -84,8 +84,9 @@ A beautiful timer that seamlessly integrates with Todoist to track your producti
 - **▶️ Start/Resume**: Begin or continue the timer
 - **⏸️ Pause**: Temporarily pause the current session
 - **⏹️ Stop**: End the session and log time to Todoist
-- **+25**: Add 25 minutes to the current timer
+- **➕25**: Add 25 minutes to the current timer
 - **🔄 Reset**: Reset timer to default duration
+- **❌ Cancel**: Cancel the current session
 
 ### Viewing Statistics
 1. **Switch to Statistics tab** 📊
@@ -116,15 +117,9 @@ A beautiful timer that seamlessly integrates with Todoist to track your producti
 - **Web Audio API** - Timer completion notifications
 - **LocalStorage** - Secure settings persistence
 
-### Browser Compatibility
-- **Chrome/Edge**: Full support
-- **Firefox**: Full support
-- **Safari**: Full support
-- **Mobile browsers**: Responsive design
-
 ### Security & Privacy
 - **Local storage only** - Your token stays in your browser
-- **No data collection** - Everything happens client-side
+- **No data collection** - Everything happens client-side, I don't store any data or rent a server for this.
 - **Secure API calls** - Direct HTTPS communication with Todoist
 
 ## 🎯 Workflow Integration
@@ -158,23 +153,3 @@ A beautiful timer that seamlessly integrates with Todoist to track your producti
 - The timer accounts for pause time automatically
 - Time tracking updates Todoist when you stop the timer
 - Browser tab switching doesn't affect accuracy
-
-## 🤝 Contributing
-
-This is a simple, self-contained project perfect for:
-- **Feature additions** (new timer modes, export options)
-- **UI improvements** (themes, animations)
-- **Todoist enhancements** (project filtering, advanced stats)
-
-## 📄 License
-
-Open source project - feel free to use and modify as needed.
-
-## 🙏 Acknowledgments
-
-- **Todoist** for their excellent API
-- **Modern CSS** inspiration from contemporary design systems
-
----
-
-**Start tracking your productivity today!** 🌀 [Try Deloist](https://merkulov.top/deloist)
