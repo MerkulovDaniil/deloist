@@ -625,4 +625,37 @@ body {
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
-} 
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: #999;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    border-radius: 8px;
+}
+
+.social-icon:hover {
+    color: #277da1;
+}
+
+.social-icon svg {
+    width: 20px;
+    height: 20px;
+}
