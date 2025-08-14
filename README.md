@@ -52,6 +52,15 @@ I have made it for myself, because I love Todoist, but it lacks a session timer 
 - **Tag support** - visualize productivity by project tags
 - **Secure API integration** using Personal Access Tokens
 
+### 🎯 Goals per Label (Serverless)
+- **New Goals tab** with one card per Todoist label
+- **Goal text + optional image URL** (the image becomes the card background)
+- **Inline edit** with a small pencil icon; minimal UI
+- **Visibility toggle** (eye icon in editor): adds `hidden: true` to the goal; hidden goals are not shown
+- **Serverless storage**: goals are saved in your Todoist Inbox task `deloist_service` as a single comment that begins with `DELOIST_GOALS_JSON` followed by JSON
+- **No extra tasks or projects** are created; your Todoist filters remain clean
+- **Multi‑device**: changes sync via Todoist; the app uses local cache and only re‑fetches when you press refresh on the Goals tab
+
 ## 🔧 Configuration
 
 ### Todoist Personal Access Token
@@ -113,6 +122,29 @@ I have made it for myself, because I love Todoist, but it lacks a session timer 
 - **Local storage only** - Your token stays in your browser
 - **No data collection** - Everything happens client-side, I don't store any data or rent a server for this.
 - **Secure API calls** - Direct HTTPS communication with Todoist
+
+## 🧩 How Goals Storage Works
+
+- The app looks for (or creates) a single Inbox task named `deloist_service` (no labels).
+- The first comment that starts with `DELOIST_GOALS_JSON` contains all goals in JSON form.
+- Example structure:
+
+  ```json
+  {
+    "version": 1,
+    "goals": {
+      "<labelId>": {
+        "text": "My goal",
+        "image": "https://.../image.jpg",
+        "hidden": true
+      }
+    }
+  }
+  ```
+
+- You can edit this JSON manually in Todoist; the parser is resilient to minor formatting, but ensure the JSON stays valid.
+- Hidden goals (`hidden: true`) are not rendered on the page; remove the field to show them again.
+- The app caches goals and labels to avoid extra API calls; use the header refresh button while on the Goals tab to force reload.
 
 ## 🎯 Workflow Integration
 

@@ -23,6 +23,7 @@
         <!-- Navigation -->
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="switchTab('tracker')">🌀 Tracker</button>
+            <button class="nav-tab" onclick="switchTab('goals')">🎯 Goals</button>
             <button class="nav-tab" onclick="switchTab('stats')">📊 Statistics</button>
         </div>
 
@@ -48,6 +49,15 @@
             </div>
 
             
+        </div>
+
+        <!-- Goals Tab -->
+        <div id="goals-tab" class="tab-content">
+            <div id="goals-list" class="goals-grid">
+                <div class="loading">
+                    <p>Connect your Todoist account in settings to load labels...</p>
+                </div>
+            </div>
         </div>
 
         <!-- Statistics Tab -->

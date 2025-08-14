@@ -29,6 +29,14 @@ let labelsCache = null;
 let tagColorAssignments = {};
 let nextColorIndex = 0;
 
+// Goals storage via single Inbox task comment
+const SERVICE_TASK_NAME = 'deloist_service';
+const GOALS_DOC_MARKER = 'DELOIST_GOALS_JSON';
+let serviceTaskIdCache = localStorage.getItem('deloist_service_task_id') || null;
+let goalsDocCache = null;
+let goalsDocCommentIdCache = null;
+let goalsCacheReady = false; // whether we've fetched and can render without re-fetch
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     loadSettings();
@@ -119,6 +127,8 @@ function switchTab(tabName) {
     if (refreshBtn) {
         if (tabName === 'tracker') {
             refreshBtn.title = 'Refresh today\'s tasks';
+        } else if (tabName === 'goals') {
+            refreshBtn.title = 'Refresh goals';
         } else if (tabName === 'stats') {
             refreshBtn.title = 'Refresh statistics';
         }
@@ -134,6 +144,8 @@ function switchTab(tabName) {
         } else {
             showNoDataWithRefreshPrompt();
         }
+    } else if (tabName === 'goals') {
+        loadGoals(false);
     }
 }
 
@@ -152,7 +164,6 @@ async function fetchLabelsFromTodoist() {
         
         if (response.ok) {
             labelsCache = await response.json();
-            console.log('Fetched labels:', labelsCache);
             return labelsCache;
         }
     } catch (error) {
@@ -169,13 +180,7 @@ function parseTaskLabelsAndDuration(task, allLabels = []) {
         duration: null
     };
     
-    // Debug logging
-    console.log('Parsing task:', {
-        id: task.id || task.task_id,
-        content: task.content,
-        labels: task.labels,
-        duration: task.duration
-    });
+    // Minimal parsing, no debug logs
     
     // Create label lookup map
     const labelMap = {};
@@ -242,7 +247,6 @@ function parseTaskLabelsAndDuration(task, allLabels = []) {
     // Ensure we have unique labels
     result.labels = [...new Set(result.labels)];
     
-    console.log('Parsed result:', result);
     
     return result;
 }
@@ -361,10 +365,8 @@ async function loadTasks() {
 // Function to load statistics data in the background without affecting the UI
 async function loadStatisticsInBackground() {
     try {
-        console.log('Loading statistics in background...');
         // Fetch fresh completed tasks data and cache it
         completedTasksCache = await fetchCompletedTasksFromTodoist();
-        console.log('Statistics data loaded and cached successfully');
     } catch (error) {
         console.error('Error loading statistics in background:', error);
         // If background loading fails, we'll just fall back to the existing behavior
@@ -742,11 +744,15 @@ function refreshTodayTasks() {
 function contextualRefresh() {
     // Check which tab is currently active
     const trackerTab = document.getElementById('tracker-tab');
+    const goalsTab = document.getElementById('goals-tab');
     const statsTab = document.getElementById('stats-tab');
     
     if (trackerTab.classList.contains('active')) {
         // We're on the tracker tab, refresh today's tasks
         refreshTodayTasks();
+    } else if (goalsTab && goalsTab.classList.contains('active')) {
+        // We're on the goals tab, force refresh goals
+        loadGoals(true);
     } else if (statsTab.classList.contains('active')) {
         // We're on the statistics tab, refresh statistics
         refreshStatistics();
@@ -851,7 +857,7 @@ async function fetchCompletedTasksFromTodoist() {
                             };
                         }
                     } catch (e) {
-                        console.log(`Could not fetch details for task ${task.task_id || task.id}:`, e);
+                        // Swallow detail fetch failure; we'll fallback to sync data
                     }
                     
                     // Fallback to sync API data if REST API fails
@@ -1342,7 +1348,7 @@ function playNotificationSound() {
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.5);
     } catch (error) {
-        console.log('Audio notification not available');
+        // Audio notification not available in this environment
     }
 }
 
@@ -1393,3 +1399,366 @@ function copyBitcoinAddress() {
         }, 2000);
     });
 } 
+
+// =====================
+// Goals (single service task comment storage)
+// =====================
+
+async function getInboxProjectId() {
+    if (!todoistToken) return null;
+    try {
+        const resp = await fetch('https://api.todoist.com/rest/v2/projects', {
+            headers: { 'Authorization': `Bearer ${todoistToken}` }
+        });
+        if (!resp.ok) return null;
+        const projects = await resp.json();
+        const inbox = projects.find(p => p.is_inbox_project === true);
+        return inbox ? inbox.id : null;
+    } catch (e) {
+        console.error('Error fetching Inbox project id:', e);
+        return null;
+    }
+}
+
+async function getOrCreateServiceTaskId() {
+    if (!todoistToken) return null;
+
+    // Validate cached id
+    if (serviceTaskIdCache) {
+        try {
+            const check = await fetch(`https://api.todoist.com/rest/v2/tasks/${serviceTaskIdCache}`, {
+                headers: { 'Authorization': `Bearer ${todoistToken}` }
+            });
+            if (check.ok) {
+                return serviceTaskIdCache;
+            }
+        } catch (e) {
+            // fall through
+        }
+        serviceTaskIdCache = null;
+        localStorage.removeItem('deloist_service_task_id');
+    }
+
+    // Find by name in Inbox
+    try {
+        const inboxId = await getInboxProjectId();
+        if (!inboxId) return null;
+        const list = await fetch(`https://api.todoist.com/rest/v2/tasks?project_id=${inboxId}`, {
+            headers: { 'Authorization': `Bearer ${todoistToken}` }
+        });
+        if (list.ok) {
+            const tasksResp = await list.json();
+            const found = tasksResp.find(t => t.content === SERVICE_TASK_NAME && (!Array.isArray(t.labels) || t.labels.length === 0));
+            if (found) {
+                serviceTaskIdCache = found.id;
+                localStorage.setItem('deloist_service_task_id', serviceTaskIdCache);
+                return serviceTaskIdCache;
+            }
+        }
+        // Create new in Inbox
+        const create = await fetch('https://api.todoist.com/rest/v2/tasks', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${todoistToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ project_id: inboxId, content: SERVICE_TASK_NAME })
+        });
+        if (create.ok) {
+            const created = await create.json();
+            serviceTaskIdCache = created.id;
+            localStorage.setItem('deloist_service_task_id', serviceTaskIdCache);
+            // Ensure there is an initial comment
+            await ensureGoalsCommentExists(serviceTaskIdCache);
+            return serviceTaskIdCache;
+        }
+    } catch (e) {
+        console.error('Error getting/creating service task:', e);
+    }
+    return null;
+}
+
+async function ensureGoalsCommentExists(taskId) {
+    try {
+        const { commentId } = await fetchGoalsDocInternal(taskId);
+        if (!commentId) {
+            const payload = buildGoalsComment({ version: 1, goals: {} });
+            const resp = await fetch('https://api.todoist.com/rest/v2/comments', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${todoistToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ task_id: taskId, content: payload })
+            });
+            if (resp.ok) {
+                const c = await resp.json();
+                goalsDocCommentIdCache = c.id;
+            }
+        }
+    } catch (e) {
+        console.error('Error ensuring goals comment exists:', e);
+    }
+}
+
+function buildGoalsComment(doc) {
+    return GOALS_DOC_MARKER + '\n' + JSON.stringify(doc);
+}
+
+async function fetchGoalsDocInternal(taskId) {
+    try {
+        const resp = await fetch(`https://api.todoist.com/rest/v2/comments?task_id=${taskId}`, {
+            headers: { 'Authorization': `Bearer ${todoistToken}` }
+        });
+        if (!resp.ok) return { doc: null, commentId: null };
+        const comments = await resp.json();
+        // Find a comment that contains the marker (allow leading BOM/whitespace or any prefix)
+        let matchedComment = null;
+        let extractedJson = null;
+        for (const c of comments) {
+            if (!c || typeof c.content !== 'string') continue;
+            const raw = c.content.replace(/^\uFEFF/, ''); // strip BOM if any
+            const idx = raw.indexOf(GOALS_DOC_MARKER);
+            if (idx === -1) continue;
+            matchedComment = c;
+            let afterMarker = raw.slice(idx + GOALS_DOC_MARKER.length).trim();
+            // Strip code fences if pasted as a block
+            afterMarker = afterMarker.replace(/^```[a-zA-Z]*\n?/, '').replace(/```\s*$/, '');
+            // Extract the first balanced JSON object if extra text surrounds it
+            const firstBrace = afterMarker.indexOf('{');
+            const lastBrace = afterMarker.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                extractedJson = afterMarker.slice(firstBrace, lastBrace + 1);
+            } else {
+                extractedJson = afterMarker;
+            }
+            break;
+        }
+        if (!matchedComment) return { doc: null, commentId: null };
+        try {
+            const parsed = JSON.parse(extractedJson || '{}');
+            return { doc: parsed, commentId: matchedComment.id };
+        } catch (e) {
+            console.error('Failed to parse goals JSON from comment:', e);
+            return { doc: null, commentId: matchedComment.id };
+        }
+    } catch (e) {
+        console.error('Error fetching goals doc:', e);
+        return { doc: null, commentId: null };
+    }
+}
+
+async function fetchGoalsDoc() {
+    const taskId = await getOrCreateServiceTaskId();
+    if (!taskId) return { doc: { version: 1, goals: {} }, commentId: null };
+    const result = await fetchGoalsDocInternal(taskId);
+    if (!result.commentId) {
+        await ensureGoalsCommentExists(taskId);
+        return await fetchGoalsDocInternal(taskId);
+    }
+    // If parsing failed but we have previous cache, return cached doc to avoid wiping UI
+    if (!result.doc && goalsDocCache) {
+        return { doc: goalsDocCache, commentId: result.commentId };
+    }
+    return result;
+}
+
+async function saveGoalsDoc(doc, commentId) {
+    const taskId = await getOrCreateServiceTaskId();
+    if (!taskId) return null;
+    const payload = buildGoalsComment(doc);
+    try {
+        if (commentId) {
+            const resp = await fetch(`https://api.todoist.com/rest/v2/comments/${commentId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${todoistToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: payload })
+            });
+            if (resp.ok) {
+                goalsCacheReady = true; // keep cache valid
+                return commentId;
+            }
+        } else {
+            const resp = await fetch('https://api.todoist.com/rest/v2/comments', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${todoistToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ task_id: taskId, content: payload })
+            });
+            if (resp.ok) {
+                const c = await resp.json();
+                goalsCacheReady = true;
+                return c.id;
+            }
+        }
+    } catch (e) {
+        console.error('Error saving goals doc:', e);
+    }
+    return null;
+}
+
+async function loadGoals(force = false) {
+    const goalsList = document.getElementById('goals-list');
+    if (!goalsList) return;
+    if (!todoistToken) {
+        goalsList.innerHTML = '<div class="loading"><p>Please add your Todoist token in settings</p></div>';
+        return;
+    }
+    try {
+        // Fast path: render from cache if allowed
+        if (!force && goalsCacheReady && labelsCache && goalsDocCache) {
+            renderGoals(labelsCache, goalsDocCache);
+            return;
+        }
+
+        // Show loading only if we don't already have something to show
+        if (!goalsCacheReady || !goalsDocCache || !labelsCache) {
+            goalsList.innerHTML = '<div class="loading"><p>Loading goals...</p></div>';
+        }
+
+        const allLabels = await fetchLabelsFromTodoist();
+        const { doc, commentId } = await fetchGoalsDoc();
+        goalsDocCache = doc || { version: 1, goals: {} };
+        goalsDocCommentIdCache = commentId || null;
+        goalsCacheReady = true;
+        renderGoals(allLabels, goalsDocCache);
+    } catch (e) {
+        console.error('Error loading goals:', e);
+        goalsList.innerHTML = '<div class="error"><p>Error loading goals.</p></div>';
+    }
+}
+
+function renderGoals(allLabels, doc) {
+    const container = document.getElementById('goals-list');
+    if (!container) return;
+    if (!Array.isArray(allLabels) || allLabels.length === 0) {
+        container.innerHTML = '<div class="loading"><p>No labels found.</p></div>';
+        return;
+    }
+    const goalsMap = (doc && doc.goals) ? doc.goals : {};
+    const sorted = [...allLabels].sort((a, b) => a.name.localeCompare(b.name));
+    container.innerHTML = sorted.map(label => {
+        const entry = goalsMap[String(label.id)] || {};
+        const text = typeof entry.text === 'string' ? entry.text : '';
+        const image = typeof entry.image === 'string' ? normalizeImageUrl(entry.image) : '';
+        const hidden = entry.hidden === true;
+        const style = image ? ` style="background-image: url('${escapeHtml(image)}')"` : '';
+        const goalText = text ? escapeHtml(text) : '';
+        // Hidden goals should not be displayed at all in the list; render nothing
+        if (hidden) return '';
+        return `
+            <div class="goal-card"${style}>
+                <div class="goal-card-tags task-tags">
+                    <span class="task-tag">${escapeHtml(label.name)}</span>
+                </div>
+                <button class="goal-edit-btn" title="Edit goal" onclick="openGoalEditor('${label.id}')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor"/><path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
+                </button>
+                <div class="goal-goal" id="goal-display-${label.id}">${goalText}</div>
+                <div id="goal-editor-${label.id}" class="goal-editor" style="display:none;">
+                    <textarea class="goal-text" id="goal-text-${label.id}" placeholder="Describe your goal for ${escapeHtml(label.name)}">${escapeHtml(text)}</textarea>
+                    <input class="goal-image-input" id="goal-image-${label.id}" type="text" placeholder="Image URL (optional)" value="${escapeHtml(image)}" />
+                    <div class="goal-actions">
+                        <button class="goal-visibility-btn" id="goal-visibility-editor-${label.id}" title="Toggle visibility" onclick="toggleGoalVisibility('${label.id}', true)">
+                            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5c-7.633 0-11 7-11 7s3.367 7 11 7 11-7 11-7-3.367-7-11-7Zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+                            </svg>
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeGoalEditor('${label.id}')">Cancel</button>
+                        <button class="btn btn-primary" onclick="saveGoal('${label.id}', true)">Save</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openGoalEditor(labelId) {
+    const editor = document.getElementById(`goal-editor-${labelId}`);
+    if (editor) editor.style.display = 'block';
+    // Hide display overlay to prevent it from blocking editor controls
+    const display = document.getElementById(`goal-display-${labelId}`);
+    if (display) display.style.display = 'none';
+    // Activate visibility icon state based on current doc (editor only)
+    const eyeBtn = document.getElementById(`goal-visibility-editor-${labelId}`);
+    const currentHidden = !!(goalsDocCache && goalsDocCache.goals && goalsDocCache.goals[String(labelId)] && goalsDocCache.goals[String(labelId)].hidden === true);
+    if (eyeBtn) {
+        eyeBtn.classList.toggle('active', currentHidden);
+        eyeBtn.title = currentHidden ? 'Currently hidden. Click to show' : 'Visible. Click to hide';
+    }
+}
+
+function closeGoalEditor(labelId) {
+    const editor = document.getElementById(`goal-editor-${labelId}`);
+    if (editor) editor.style.display = 'none';
+    // Restore goal display overlay
+    const display = document.getElementById(`goal-display-${labelId}`);
+    if (display) display.style.display = '';
+}
+
+async function saveGoal(labelId, closeAfterSave = false) {
+    try {
+        // Refresh current doc to avoid overwriting concurrent edits
+        const latest = await fetchGoalsDoc();
+        const currentDoc = latest.doc || { version: 1, goals: {} };
+        const textarea = document.getElementById(`goal-text-${labelId}`);
+        const imageInput = document.getElementById(`goal-image-${labelId}`);
+        const text = textarea ? textarea.value : '';
+        const image = imageInput ? normalizeImageUrl(imageInput.value) : '';
+        const hidden = document.getElementById(`goal-visibility-editor-${labelId}`)?.classList.contains('active') || false;
+        currentDoc.goals[String(labelId)] = hidden ? { text, image, hidden: true } : { text, image };
+        const savedId = await saveGoalsDoc(currentDoc, latest.commentId || null);
+        if (savedId) {
+            goalsDocCache = currentDoc;
+            goalsDocCommentIdCache = savedId;
+            const display = document.getElementById(`goal-display-${labelId}`);
+            if (display) display.innerHTML = (!hidden && text) ? escapeHtml(text) : '';
+            const card = display.closest('.goal-card');
+            if (card) {
+                if (image) card.style.backgroundImage = `url('${image}')`;
+                else card.style.backgroundImage = '';
+            }
+            if (closeAfterSave) closeGoalEditor(labelId);
+        }
+    } catch (e) {
+        console.error('Error saving goal:', e);
+    }
+}
+
+function toggleGoalVisibility(labelId) {
+    const btn = document.getElementById(`goal-visibility-editor-${labelId}`);
+    if (!btn) return;
+    const newState = !btn.classList.contains('active');
+    btn.classList.toggle('active', newState);
+    btn.title = newState ? 'Currently hidden. Click to show' : 'Visible. Click to hide';
+}
+
+function escapeHtml(str) {
+    if (typeof str !== 'string') return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Remove stray leading/trailing brackets/whitespace that might appear when editing by hand
+function normalizeImageUrl(url) {
+    if (typeof url !== 'string') return '';
+    let cleaned = url.trim();
+    // Remove wrapping [ ] if accidentally inserted
+    if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
+        cleaned = cleaned.slice(1, -1).trim();
+    }
+    // Also remove a single leading [ if present
+    if (cleaned.startsWith('[')) cleaned = cleaned.slice(1).trim();
+    // And trailing ] if present
+    if (cleaned.endsWith(']')) cleaned = cleaned.slice(0, -1).trim();
+    return cleaned;
+}

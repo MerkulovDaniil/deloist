@@ -659,3 +659,147 @@ body {
     width: 20px;
     height: 20px;
 }
+
+/* Goals UI */
+.goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 15px;
+}
+
+.goal-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    background: #fff;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    min-height: 220px;
+    /* Enable container queries so font-size can scale with card width */
+    container-type: inline-size;
+}
+
+/* Removed bottom gradient overlay for simpler look */
+
+/* Goal card label as standard task tag */
+.goal-card-tags {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 3;
+}
+
+.goal-edit-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0.45;
+}
+
+.goal-edit-btn:hover {
+    opacity: 0.9;
+}
+
+.goal-edit-btn svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.goal-goal {
+    position: absolute;
+    left: 16px;
+    right: auto;
+    bottom: 16px;
+    /* Match nav tab font-size */
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.3;
+    pointer-events: none; /* make sure it never blocks editor buttons */
+    z-index: 2;
+    background: rgba(32, 32, 32, 0.45);
+    padding: 10px 14px;
+    border-radius: 10px;
+    display: inline-block;
+    max-width: calc(100% - 32px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-wrap: balance;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+/* Hide pill when there's no text so background appears only when letters exist */
+.goal-goal:empty {
+    display: none;
+}
+
+/* removed .goal-empty: no placeholder text on cards */
+
+.goal-text {
+    width: 100%;
+    min-height: 90px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: vertical;
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.92);
+}
+
+.goal-image-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 6px;
+    background: rgba(255,255,255,0.92);
+}
+
+.goal-editor {
+    margin-top: 20px;
+    background: rgba(255,255,255,0.92);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.goal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+/* Visibility toggle in editor */
+.goal-visibility-btn {
+    position: absolute;
+    top: 10px;
+    right: 34px; /* just left of edit icon */
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0.45;
+    z-index: 2;
+}
+
+.goal-visibility-btn:hover {
+    opacity: 0.9;
+}
+
+.goal-visibility-btn svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.goal-visibility-btn.active {
+    opacity: 0.95;
+}
