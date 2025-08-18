@@ -57,7 +57,7 @@ I have made it for myself, because I love Todoist, but it lacks a session timer 
 - **Goal text + optional image URL** (the image becomes the card background)
 - **Inline edit** with a small pencil icon; minimal UI
 - **Visibility toggle** (eye icon in editor): adds `hidden: true` to the goal; hidden goals are not shown
-- **Serverless storage**: goals are saved in your Todoist Inbox task `deloist_service` as a single comment that begins with `DELOIST_GOALS_JSON` followed by JSON
+- **Serverless storage**: goals are saved in your Todoist Inbox task `deloist_service` as a single comment that begins with `DELOIST_GOALS_JSON` followed by a fenced JSON block
 - **No extra tasks or projects** are created; your Todoist filters remain clean
 - **Multi‑device**: changes sync via Todoist; the app uses local cache and only re‑fetches when you press refresh on the Goals tab
 
@@ -126,8 +126,25 @@ I have made it for myself, because I love Todoist, but it lacks a session timer 
 ## 🧩 How Goals Storage Works
 
 - The app looks for (or creates) a single Inbox task named `deloist_service` (no labels).
-- The first comment that starts with `DELOIST_GOALS_JSON` contains all goals in JSON form.
-- Example structure:
+- The first comment that starts with `DELOIST_GOALS_JSON` contains all goals inside a fenced JSON block.
+- Expected format in the comment:
+
+  ```
+  DELOIST_GOALS_JSON
+  ```json
+  {
+    "version": 1,
+    "goals": {
+      "<labelId>": {
+        "label": "Label Name",
+        "text": "My goal",
+        "image": "https://.../image.jpg",
+        "hidden": true
+      }
+    }
+  }
+  ```
+  ```
 
   ```json
   {
@@ -142,7 +159,7 @@ I have made it for myself, because I love Todoist, but it lacks a session timer 
   }
   ```
 
-- You can edit this JSON manually in Todoist; the parser is resilient to minor formatting, but ensure the JSON stays valid.
+- You can edit this JSON manually in Todoist; edit strictly inside the fenced block and ensure the JSON stays valid.
 - Hidden goals (`hidden: true`) are not rendered on the page; remove the field to show them again.
 - The app caches goals and labels to avoid extra API calls; use the header refresh button while on the Goals tab to force reload.
 

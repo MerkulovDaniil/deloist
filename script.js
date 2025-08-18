@@ -36,6 +36,7 @@ let serviceTaskIdCache = localStorage.getItem('deloist_service_task_id') || null
 let goalsDocCache = null;
 let goalsDocCommentIdCache = null;
 let goalsCacheReady = false; // whether we've fetched and can render without re-fetch
+let goalsSubtab = 'current'; // 'current' | 'completed'
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
@@ -146,6 +147,19 @@ function switchTab(tabName) {
         }
     } else if (tabName === 'goals') {
         loadGoals(false);
+    }
+}
+
+// Goals sub-tabs (Current / Completed)
+function switchGoalsSubtab(name) {
+    goalsSubtab = (name === 'completed') ? 'completed' : 'current';
+    // Update active state on subtab buttons
+    const subtabs = document.querySelectorAll('#goals-subtabs .nav-tab');
+    subtabs.forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.querySelector(`#goals-subtabs .nav-tab[onclick="switchGoalsSubtab('${goalsSubtab}')"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+    if (goalsCacheReady && labelsCache && goalsDocCache) {
+        renderGoals(labelsCache, goalsDocCache);
     }
 }
 
@@ -1502,8 +1516,11 @@ async function ensureGoalsCommentExists(taskId) {
 }
 
 function buildGoalsComment(doc) {
-    return GOALS_DOC_MARKER + '\n' + JSON.stringify(doc);
+    // Wrap JSON in code fences to keep Todoist markdown from mangling it
+    return GOALS_DOC_MARKER + '\n```json\n' + JSON.stringify(doc) + '\n```';
 }
+
+// (Deprecated helpers removed after switching to fenced JSON storage)
 
 async function fetchGoalsDocInternal(taskId) {
     try {
@@ -1520,23 +1537,23 @@ async function fetchGoalsDocInternal(taskId) {
             const raw = c.content.replace(/^\uFEFF/, ''); // strip BOM if any
             const idx = raw.indexOf(GOALS_DOC_MARKER);
             if (idx === -1) continue;
+            // Remember this comment as the storage comment even if it doesn't yet have a fenced block
             matchedComment = c;
-            let afterMarker = raw.slice(idx + GOALS_DOC_MARKER.length).trim();
-            // Strip code fences if pasted as a block
-            afterMarker = afterMarker.replace(/^```[a-zA-Z]*\n?/, '').replace(/```\s*$/, '');
-            // Extract the first balanced JSON object if extra text surrounds it
-            const firstBrace = afterMarker.indexOf('{');
-            const lastBrace = afterMarker.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                extractedJson = afterMarker.slice(firstBrace, lastBrace + 1);
-            } else {
-                extractedJson = afterMarker;
+            const afterMarker = raw.slice(idx + GOALS_DOC_MARKER.length);
+            // Prefer a fenced code block right after the marker
+            const fenceMatch = afterMarker.match(/```(?:json)?\n([\s\S]*?)```/);
+            if (fenceMatch && fenceMatch[1]) {
+                extractedJson = fenceMatch[1];
             }
-            break;
+            // Continue to check other comments; if none has a fenced block, we'll still return this commentId
         }
         if (!matchedComment) return { doc: null, commentId: null };
+        if (!extractedJson) {
+            // No fenced JSON found yet, return comment id so future save updates it in place
+            return { doc: null, commentId: matchedComment.id };
+        }
         try {
-            const parsed = JSON.parse(extractedJson || '{}');
+            const parsed = JSON.parse(extractedJson);
             return { doc: parsed, commentId: matchedComment.id };
         } catch (e) {
             console.error('Failed to parse goals JSON from comment:', e);
@@ -1625,6 +1642,23 @@ async function loadGoals(force = false) {
         const { doc, commentId } = await fetchGoalsDoc();
         goalsDocCache = doc || { version: 1, goals: {} };
         goalsDocCommentIdCache = commentId || null;
+        // One-time backfill: ensure each goal stores human-readable label name
+        let changed = false;
+        if (goalsDocCache && goalsDocCache.goals && typeof goalsDocCache.goals === 'object') {
+            for (const key of Object.keys(goalsDocCache.goals)) {
+                const entry = goalsDocCache.goals[key] || {};
+                if (typeof entry.label !== 'string' || entry.label.trim() === '') {
+                    const found = allLabels.find(l => String(l.id) === String(key));
+                    if (found && found.name) {
+                        goalsDocCache.goals[key] = { ...entry, label: found.name };
+                        changed = true;
+                    }
+                }
+            }
+        }
+        if (changed) {
+            try { await saveGoalsDoc(goalsDocCache, goalsDocCommentIdCache || null); } catch (_) {}
+        }
         goalsCacheReady = true;
         renderGoals(allLabels, goalsDocCache);
     } catch (e) {
@@ -1647,10 +1681,14 @@ function renderGoals(allLabels, doc) {
         const text = typeof entry.text === 'string' ? entry.text : '';
         const image = typeof entry.image === 'string' ? normalizeImageUrl(entry.image) : '';
         const hidden = entry.hidden === true;
+        const completed = entry.completed === true;
         const style = image ? ` style="background-image: url('${escapeHtml(image)}')"` : '';
         const goalText = text ? escapeHtml(text) : '';
         // Hidden goals should not be displayed at all in the list; render nothing
         if (hidden) return '';
+        // Filter by subtab
+        if (goalsSubtab === 'current' && completed) return '';
+        if (goalsSubtab === 'completed' && !completed) return '';
         return `
             <div class="goal-card"${style}>
                 <div class="goal-card-tags task-tags">
@@ -1667,6 +1705,11 @@ function renderGoals(allLabels, doc) {
                         <button class="goal-visibility-btn" id="goal-visibility-editor-${label.id}" title="Toggle visibility" onclick="toggleGoalVisibility('${label.id}', true)">
                             <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 5c-7.633 0-11 7-11 7s3.367 7 11 7 11-7 11-7-3.367-7-11-7Zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+                            </svg>
+                        </button>
+                        <button class="goal-completed-btn" id="goal-completed-editor-${label.id}" title="Toggle completed" onclick="toggleGoalCompleted('${label.id}')">
+                            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
                             </svg>
                         </button>
                         <button class="btn btn-secondary" onclick="closeGoalEditor('${label.id}')">Cancel</button>
@@ -1691,6 +1734,12 @@ function openGoalEditor(labelId) {
         eyeBtn.classList.toggle('active', currentHidden);
         eyeBtn.title = currentHidden ? 'Currently hidden. Click to show' : 'Visible. Click to hide';
     }
+    const compBtn = document.getElementById(`goal-completed-editor-${labelId}`);
+    const currentCompleted = !!(goalsDocCache && goalsDocCache.goals && goalsDocCache.goals[String(labelId)] && goalsDocCache.goals[String(labelId)].completed === true);
+    if (compBtn) {
+        compBtn.classList.toggle('active', currentCompleted);
+        compBtn.title = currentCompleted ? 'Marked as completed. Click to move to current' : 'In current. Click to mark as completed';
+    }
 }
 
 function closeGoalEditor(labelId) {
@@ -1711,7 +1760,14 @@ async function saveGoal(labelId, closeAfterSave = false) {
         const text = textarea ? textarea.value : '';
         const image = imageInput ? normalizeImageUrl(imageInput.value) : '';
         const hidden = document.getElementById(`goal-visibility-editor-${labelId}`)?.classList.contains('active') || false;
-        currentDoc.goals[String(labelId)] = hidden ? { text, image, hidden: true } : { text, image };
+        const completed = document.getElementById(`goal-completed-editor-${labelId}`)?.classList.contains('active') || false;
+        // Include label name for convenience
+        const labels = await fetchLabelsFromTodoist();
+        const labelName = (labels.find(l => String(l.id) === String(labelId)) || {}).name || '';
+        const obj = { text, image, label: labelName };
+        if (hidden) obj.hidden = true;
+        if (completed) obj.completed = true;
+        currentDoc.goals[String(labelId)] = obj;
         const savedId = await saveGoalsDoc(currentDoc, latest.commentId || null);
         if (savedId) {
             goalsDocCache = currentDoc;
@@ -1722,6 +1778,10 @@ async function saveGoal(labelId, closeAfterSave = false) {
             if (card) {
                 if (image) card.style.backgroundImage = `url('${image}')`;
                 else card.style.backgroundImage = '';
+            }
+            // Re-render to reflect subtab movement
+            if (labelsCache && goalsDocCache) {
+                renderGoals(labelsCache, goalsDocCache);
             }
             if (closeAfterSave) closeGoalEditor(labelId);
         }
@@ -1738,6 +1798,14 @@ function toggleGoalVisibility(labelId) {
     btn.title = newState ? 'Currently hidden. Click to show' : 'Visible. Click to hide';
 }
 
+function toggleGoalCompleted(labelId) {
+    const btn = document.getElementById(`goal-completed-editor-${labelId}`);
+    if (!btn) return;
+    const newState = !btn.classList.contains('active');
+    btn.classList.toggle('active', newState);
+    btn.title = newState ? 'Marked as completed. Click to move to current' : 'In current. Click to mark as completed';
+}
+
 function escapeHtml(str) {
     if (typeof str !== 'string') return '';
     return str
@@ -1751,14 +1819,5 @@ function escapeHtml(str) {
 // Remove stray leading/trailing brackets/whitespace that might appear when editing by hand
 function normalizeImageUrl(url) {
     if (typeof url !== 'string') return '';
-    let cleaned = url.trim();
-    // Remove wrapping [ ] if accidentally inserted
-    if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
-        cleaned = cleaned.slice(1, -1).trim();
-    }
-    // Also remove a single leading [ if present
-    if (cleaned.startsWith('[')) cleaned = cleaned.slice(1).trim();
-    // And trailing ] if present
-    if (cleaned.endsWith(']')) cleaned = cleaned.slice(0, -1).trim();
-    return cleaned;
+    return url.trim();
 }

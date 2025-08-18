@@ -53,6 +53,10 @@
 
         <!-- Goals Tab -->
         <div id="goals-tab" class="tab-content">
+            <div class="nav-tabs" id="goals-subtabs">
+                <button class="nav-tab active" onclick="switchGoalsSubtab('current')">Current</button>
+                <button class="nav-tab" onclick="switchGoalsSubtab('completed')">Completed</button>
+            </div>
             <div id="goals-list" class="goals-grid">
                 <div class="loading">
                     <p>Connect your Todoist account in settings to load labels...</p>
